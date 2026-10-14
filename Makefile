@@ -1,5 +1,5 @@
 NAME = libasm.a
-SRC_FILES = srcs/ft_read.s srcs/ft_strcmp.s srcs/ft_strcpy.s srcs/ft_strdup.s srcs/ft_strlen.s srcs/ft_write.s
+SRC_FILES = srcs/ft_read.s srcs/ft_strcmp.s srcs/ft_strcpy.s srcs/ft_strdup.s srcs/ft_strlen.s srcs/ft_write.s srcs/ft_atoi_base_bonus.s
 OBJ_FILES = $(SRC_FILES:.s=.o)
 ASSEMBLE = nasm -f elf64
 

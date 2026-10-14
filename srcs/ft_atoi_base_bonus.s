@@ -5,108 +5,111 @@ extern ft_strlen
 section .text
 
 ft_atoi_base:
-    push rdi
-    push rsi
-    mov rcx, 0
-    sub rsp, 8
-    mov rdi, [rsp + 8]
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
+
+    mov rbx, rdi            ; rbx = str
+    mov r12, rsi            ; r12 = base
+
+    ; ---- validate base ----
+    mov rdi, r12
     call ft_strlen
-    mov rcx, rax
-    cmp rcx, 2
-    jl invalid_base
-    mov rsi, [rsp + 8]
-    mov r8, 0
-    validation_loop:
-        cmp r8, rcx
-        je dup_check
-        mov al, [rsi + r8]
+    mov r13, rax            ; r13 = base length
+    cmp r13, 2
+    jb invalid_base
+
+    xor r8, r8
+validation_loop:
+    cmp r8, r13
+    jae convert
+    mov al, [r12 + r8]
+    cmp al, 32              ; space
+    je invalid_base
+    cmp al, '-'
+    je invalid_base
+    cmp al, '+'
+    je invalid_base
+    cmp al, 9               ; tab, LF, VT, FF, CR
+    jb no_whitespace
+    cmp al, 13
+    jbe invalid_base
+no_whitespace:
+    mov r9, r8
+    inc r9
+duplicate_inner:
+    cmp r9, r13
+    jae next_outer
+    mov dl, [r12 + r9]
+    cmp al, dl
+    je invalid_base
+    inc r9
+    jmp duplicate_inner
+next_outer:
+    inc r8
+    jmp validation_loop
+
+    ; ---- skip leading whitespace in str ----
+    convert:
+        mov al, [rbx]
         cmp al, 32
-        je invalid_base
-        cmp al, '-'
-        je invalid_base
-        cmp al, '+'
-        je invalid_base
+        je skip_space
         cmp al, 9
-        je invalid_base
-        cmp al, 10
-        je invalid_base
-        cmp al, 11
-        je invalid_base
-        cmp al, 12
-        je invalid_base
+        jb parse_sign
         cmp al, 13
-        je invalid_base
-        inc r8
-        jmp validation_loop
-    dup_check:
-        mov r8, 0
-        duplicate_outer:
-            cmp r8, rcx
-            jae base_chars_valid
-            mov r9, r8
-            inc r9
-            mov al, [rsi + r8]
-        duplicate_inner:
-            cmp r9, rcx
-            jae next_outer
-            mov dl, [rsi + r9]
-            cmp al, dl
-            je invalid_base
-            inc r9
-            jmp duplicate_inner
-        next_outer:
-            inc r8
-            jmp duplicate_outer
+        ja parse_sign
+    skip_space:
+        inc rbx
+        jmp convert
 
-    base_chars_valid:
-        mov eax, 0
-        mov r10d, 1
-        mov rdi, [rsp + 16]
-        jmp skip_whitespace
-
-    skip_whitespace:
-        cmp al, [rdi]
-        je after_whitespace
-        mov al, [rdi]
-        cmp al, '-'
-        je after_whitespace
+    ; ---- optional single sign ----
+    parse_sign:
+        mov r15, 1
         cmp al, '+'
-        je after_whitespace
-        cmp al, 9
-        je is_whitespace
-        cmp al, 10
-        je is_whitespace
-        cmp al, 11
-        je is_whitespace
-        cmp al, 12
-        je is_whitespace
-        cmp al, 13
-        je is_whitespace
-        cmp al, 32
-        je is_whitespace
-        jmp skip_whitespace
-
-    is_whitespace:
-        inc rdi
-        jmp skip_whitespace
-    
-    after_whitespace:
-        cmp al, '+'
-        jmp is_sign
+        je consume_sign
         cmp al, '-'
-        neg r10d
-        jmp is_sign
-        jmp parse_digits
+        jne parse_digits
+        mov r15, -1
+    consume_sign:
+        inc rbx
 
+    ; ---- convert digits ----
     parse_digits:
-        add rsp, 24
-        ret
+        xor r14, r14        ; r14 = result
+    digit_loop:
+        movzx eax, byte [rbx]
+        test al, al
+        jz  conversion_done
+        xor r8, r8
+    find_digit:
+        cmp r8, r13
+        jae conversion_done
+        cmp al, [r12 + r8]
+        je  digit_found
+        inc r8
+        jmp find_digit
+    digit_found:
+        mov rax, r14
+        imul rax, r13
+        add rax, r8
+        mov r14, rax
+        inc rbx
+        jmp digit_loop
 
-    is_sign:
-        inc rdi
-        jmp base_chars_valid
+    conversion_done:
+        mov rax, r14
+        imul rax, r15
+        jmp epilogue
 
     invalid_base:
-        add rsp, 24
         xor eax, eax
+
+    epilogue:
+        pop r15
+        pop r14
+        pop r13
+        pop r12
+        pop rbx
         ret
